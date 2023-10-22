@@ -25,10 +25,15 @@ apt-get update && apt-get install g++
 
 ### 拉取代码
 
-使用git拉取github或者gitee上的仓库。
+easy_lab2在本仓库的lab2分支上，gitee链接：https://gitee.com/ruiqurm/easy_lab/tree/lab2/
+
+由于lab2分支和lab1分支之间没有共享的commit历史信息，为了避免一些冲突，直接使用以下命令拉取分支，然后就可以在easy_lab2目录下开始做lab了。
 
 ```bash
-git clone 仓库地址
+# 将lab2分支拉取到easy_lab2目录下
+git clone -b lab2 https://gitee.com/ruiqurm/easy_lab.git easy_lab2
+# 或者
+git clone -b lab2 https://github.com/rust-real-time-os/easy_lab.git easy_lab2
 ```
 
 ### 提交方式
