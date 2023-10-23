@@ -38,7 +38,7 @@ git clone -b lab2 https://github.com/rust-real-time-os/easy_lab.git easy_lab2
 
 ### 提交方式
 
-本次Lab代码的实现只在multiply.cpp文件中完成，只需要在该文件做修改即可，完成后把该文件和报告提交到评测平台。
+本次Lab代码的实现只在multiply.cpp文件中完成，只需要在该文件做修改即可，完成后把该文件和报告提交到评测平台，不需要生成patch。
 
 ### 评分规则
 
