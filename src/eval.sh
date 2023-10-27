@@ -5,9 +5,9 @@ g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o main -D JUDGE_
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then
-    echo "第一个版本编译成功，可执行文件 'main' 已生成。"
+    echo "测试计算编译成功，可执行文件 'main' 已生成。"
 else
-    echo "第一个版本编译失败，请检查源代码文件和编译选项。"
+    echo "测试计算编译成功，请检查源代码文件和编译选项。"
     exit 1
 fi
 
@@ -17,9 +17,9 @@ g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o main -D N=1024
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then
-    echo "第二个版本编译成功，可执行文件 'main_v2' 已生成。"
+    echo "测试时间编译完成，可执行文件 'main' 已生成。"
 else
-    echo "第二个版本编译失败，请检查源代码文件和编译选项。"
+    echo "测试时间编译完成，请检查源代码文件和编译选项。"
     exit 1
 fi
 
