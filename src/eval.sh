@@ -1,7 +1,8 @@
 #!/bin/bash
 
 
-g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o main -D JUDGE_RIGHT -D N=280 -D M=8 -D P=124
+g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o \
+    main -D JUDGE_RIGHT -D N=280 -D M=8 -D P=124
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then
@@ -13,7 +14,8 @@ fi
 
 ./main
 
-g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o main -D N=1024 -D M=1024 -D P=1024
+g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o \
+    main -D N=1024 -D M=1024 -D P=1024
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then
@@ -24,4 +26,6 @@ else
 fi
 
 ./main
+
+rm ./main
 
