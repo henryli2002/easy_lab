@@ -140,11 +140,19 @@ void matrix_multiplication(double matrix1[N][M],
 }
 */
 
+
+
+
+
+
+
+
 #include <emmintrin.h>  
 #include <vector>
 #include <thread>
 
-const int num_threads = 64;  // 线程数量
+const int num_threads = 256;  // 线程数量
+const int BLOCK_SIZE = 32;
 
 double* transposed;
 double* matrix1_1;
@@ -155,7 +163,7 @@ void multiply_partial_sse(int start_row, int end_row) {
         for (int col = 0; col < P; ++col) {
             __m128d sum0 = _mm_setzero_pd();
             __m128d sum1 = _mm_setzero_pd(); // 使用另一个寄存器
-            __m128d sum2 = _mm_setzero_pd(); // 使用另一个寄存器
+            
 
             for (int mid = 0; mid < M; mid += 4) { // 增加步长来减少循环迭代
                 // 加载第一组向量并累加
@@ -187,17 +195,31 @@ void multiply_partial_sse(int start_row, int end_row) {
 }
 
 
-void multiply_partial(int start_row, int end_row) {
-    for (int row = start_row; row < end_row; ++row) {
-        for (int col = 0; col < P; ++col) {
-            double a = 0;
-            for (int mid = 0; mid < M; ++mid) {
-                a += matrix1_1[row * M + mid] * transposed[col * M + mid];
+void multiply_partial_sse_withblock(int start_row, int end_row) {
+    for (int i0 = start_row; i0 < end_row; i0 += BLOCK_SIZE) {
+        int i_max = std::min(end_row, i0 + BLOCK_SIZE);
+        for (int j0 = 0; j0 < P; j0 += BLOCK_SIZE) {
+            int j_max = std::min(P, j0 + BLOCK_SIZE);
+            for (int k0 = 0; k0 < M; k0 += BLOCK_SIZE) {
+                int k_max = std::min(M, k0 + BLOCK_SIZE);
+                for (int i = i0; i < i_max; ++i) {
+                    for (int j = j0; j < j_max; ++j) {
+                        __m128d sum = _mm_setzero_pd();
+                        for (int k = k0; k < k_max; k += 2) {
+                            __m128d vec1 = _mm_load_pd(&matrix1_1[i * M + k]);
+                            __m128d vec2 = _mm_load_pd(&transposed[j * M + k]);
+                            sum = _mm_add_pd(sum, _mm_mul_pd(vec1, vec2));
+                        }
+                        double partial_sum[2];
+                        _mm_storeu_pd(partial_sum, sum);
+                        result_matrix_1[i * P + j] += partial_sum[0] + partial_sum[1];
+                    }
+                }
             }
-            result_matrix_1[row * P + col] = a;
         }
     }
 }
+
 
 void matrix_multiplication(double matrix1[N][M], 
                             double matrix2[M][P], 
@@ -226,7 +248,7 @@ void matrix_multiplication(double matrix1[N][M],
     for (int i = 0; i < num_threads; ++i) {
         int start_row = i * rows_per_thread;
         int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
-        threads.push_back(std::thread(multiply_partial_sse, start_row, end_row));
+        threads.push_back(std::thread(multiply_partial_sse_withblock, start_row, end_row));
         
     }    
 
@@ -244,82 +266,3 @@ void matrix_multiplication(double matrix1[N][M],
     _mm_free(matrix1_1);
     _mm_free(result_matrix_1);
 }
-
-// #include <emmintrin.h>  
-// #include <vector>
-// #include <thread>
-
-// double* transposed;
-// double* matrix1_1;
-// double* result_matrix_1;
-
-
-// const int BLOCK_SIZE = 256; 
-
-// void multiply_block(int start_row, int end_row, int start_col, int end_col) {
-//     for (int row = start_row; row < end_row; ++row) {
-//         for (int col = start_col; col < end_col; ++col) {
-//             __m128d sum = _mm_setzero_pd();
-//             for (int mid = 0; mid < M; mid += 2) {
-//                 __m128d vec1 = _mm_load_pd(&matrix1_1[row * M + mid]);
-//                 __m128d vec2 = _mm_load_pd(&transposed[col * M + mid]);
-//                 sum = _mm_add_pd(sum, _mm_mul_pd(vec1, vec2));
-//             }
-//             double partial_sum[2];
-//             _mm_storeu_pd(partial_sum, sum);
-//             double final_sum = partial_sum[0] + partial_sum[1];
-//             if (M % 2 != 0) {
-//                 final_sum += matrix1_1[row * M + M - 1] * transposed[col * M + M - 1];
-//             }
-//             result_matrix_1[row * P + col] = final_sum;
-//         }
-//     }
-// }
-
-// void matrix_multiplication(double matrix1[N][M], double matrix2[M][P], double result_matrix[N][P]) {
-
-//     transposed = (double*)_mm_malloc(sizeof(double) * M * P, 16);
-//     matrix1_1 = (double*)_mm_malloc(N * M * sizeof(double), 16);
-//     result_matrix_1 = (double*)_mm_malloc(N * P * sizeof(double), 16);
-
-    
-//     for (int i = 0; i < N; ++i) {
-//         for (int j = 0; j < M; ++j) {
-//             matrix1_1[i * M + j] = matrix1[i][j];
-//         }
-//     }
-
-//     for (int i = 0; i < M; ++i) {
-//         for (int j = 0; j < P; ++j) {
-//             transposed[j * M + i] = matrix2[i][j];
-//         }
-//     }
-
-//     std::vector<std::thread> threads;
-    
-//     // 分块处理矩阵乘法
-//     for (int i = 0; i < N; i += BLOCK_SIZE) {
-//         for (int j = 0; j < P; j += BLOCK_SIZE) {
-//             threads.push_back(std::thread([=] {
-//                 // 调整每个块的实际大小，以防它超出矩阵的边界
-//                 int end_row_block = std::min(i + BLOCK_SIZE, N);
-//                 int end_col_block = std::min(j + BLOCK_SIZE, P);
-//                 multiply_block(i, end_row_block, j, end_col_block);
-//             }));
-//         }
-//     }
-    
-//     for (auto& th : threads) {
-//         th.join();
-//     }
-    
-//     for (int i = 0; i < N; ++i) {
-//         for (int j = 0; j < P; ++j) {
-//             result_matrix[i][j] = result_matrix_1[i * P + j];
-//         }
-//     }
-    
-//     _mm_free(transposed);
-//     _mm_free(matrix1_1);
-//     _mm_free(result_matrix_1);
-// }
