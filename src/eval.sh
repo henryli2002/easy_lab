@@ -2,7 +2,7 @@
 
 
 g++ main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o \
-    main -D JUDGE_RIGHT -D N=128 -D M=128 -D P=128
+    main -D JUDGE_RIGHT -D N=4 -D M=8 -D P=4
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then
