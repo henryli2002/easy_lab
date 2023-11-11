@@ -1,9 +1,8 @@
 #include "multiply.h"
-#include <iostream>
-#include "string.h"
+
 #include <thread>
 #include <vector>
-#include <emmintrin.h> // SSE intrinsics
+ // SSE intrinsics
 
 
 // TODO: you should implement your code in this file, we will only call `matrix_multiplication` to 
@@ -298,10 +297,9 @@ void matrix_multiplication(double matrix1[N][M],
 //     _mm_free(result_matrix_1);
 // }
 
-#include <thread>
-#include "multiply.h"
+#include <immintrin.h> 
 
-const int num_threads = 256;  // 线程数量
+  // 线程数量
 
 double* transposed;
 double* matrix1_1;
@@ -311,18 +309,36 @@ void multiply_partial(int start_row, int end_row) {
     for (int row = start_row; row < end_row; ++row) {
         for (int col = 0; col < P; ++col) {
             double a = 0;
-            for (int mid = 0; mid < M; mid += 4) {
+            for (int mid = 0; mid < M - 3; mid += 4) {
                 a += matrix1_1[row * M + mid] * transposed[col * M + mid] + 
                     matrix1_1[row * M + mid + 1] * transposed[col * M + mid + 1] +
                     matrix1_1[row * M + mid + 2] * transposed[col * M + mid + 2] +
                     matrix1_1[row * M + mid + 3] * transposed[col * M + mid + 3];
-                if (M % 4 != 0) {
-                for (int mid = M - M % 4; mid < M; ++mid) {
-                    a += matrix1_1[row * M + mid] * transposed[col * M + mid];
-                }
-            }
             }
             result_matrix_1[row * P + col] = a;
+        }
+    }
+}
+
+void multiply_partial_avx(int start_row, int end_row) {
+    for (int row = start_row; row < end_row; ++row) {
+        for (int col = 0; col < P; ++col) {
+            __m256d sum = _mm256_setzero_pd(); 
+            for (int mid = 0; mid < M - 7; mid += 8) {
+                __m256d mat1Vec_0 = _mm256_load_pd(&matrix1_1[row * M + mid]);
+                __m256d transVec_0 = _mm256_load_pd(&transposed[col * M + mid]);
+                __m256d mult_0 = _mm256_mul_pd(mat1Vec_0, transVec_0);
+                sum = _mm256_add_pd(sum, mult_0);
+
+                __m256d mat1Vec_1 = _mm256_load_pd(&matrix1_1[row * M + mid + 4]);
+                __m256d transVec_1 = _mm256_load_pd(&transposed[col * M + mid + 4]);
+                __m256d mult_1 = _mm256_mul_pd(mat1Vec_1, transVec_1);
+                sum = _mm256_add_pd(sum, mult_1);
+            }
+            // 累加和存储结果
+            __attribute__((aligned(32))) double temp[4];
+            _mm256_store_pd(temp, sum);
+            result_matrix_1[row * P + col] = temp[0] + temp[1] + temp[2] + temp[3];
         }
     }
 }
@@ -331,9 +347,9 @@ void multiply_partial(int start_row, int end_row) {
 void matrix_multiplication(double matrix1[N][M],
                             double matrix2[M][P],
                             double result_matrix[N][P]) {
-    transposed = (double*)_mm_malloc(sizeof(double) * M * P, 16);
-    matrix1_1 = (double*)_mm_malloc(N * M * sizeof(double), 16);
-    result_matrix_1 = (double*)_mm_malloc(N * P * sizeof(double), 16);
+    transposed = (double*)_mm_malloc(sizeof(double) * M * P, 32);
+    matrix1_1 = (double*)_mm_malloc(N * M * sizeof(double), 32);
+    result_matrix_1 = (double*)_mm_malloc(N * P * sizeof(double), 32);
 
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < M; ++j) {
@@ -347,12 +363,25 @@ void matrix_multiplication(double matrix1[N][M],
         }
     }
     
+    int num_threads = N / 2;
+
     std::vector<std::thread> threads;
-    int rows_per_thread = N / num_threads;
-    for (int i = 0; i < num_threads; ++i) {
-        int start_row = i * rows_per_thread;
-        int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
-        threads.push_back(std::thread(multiply_partial, start_row, end_row));
+
+    if (N > 256){
+        int rows_per_thread = N / num_threads;
+        for (int i = 0; i < num_threads; ++i) {
+            int start_row = i * rows_per_thread;
+            int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
+            threads.push_back(std::thread(multiply_partial_avx, start_row, end_row));
+        }
+    }
+    else {
+        int rows_per_thread = N / num_threads;
+        for (int i = 0; i < num_threads; ++i) {
+            int start_row = i * rows_per_thread;
+            int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
+            threads.push_back(std::thread(multiply_partial, start_row, end_row));
+        }   
     }
     
      
