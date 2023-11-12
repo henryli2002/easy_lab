@@ -12,6 +12,8 @@
     - [lab测试方法](#lab测试方法)
   - [引用](#引用)
 
+## 截止: 2023.12.13 23:59
+助教 lihongyu1999@bupt.edu.cn
 
 ## lab任务与评分
 
@@ -22,14 +24,14 @@
 ### lab前置操作（包括如何准备环境，如何拉取lab的代码，如何提交作业）
 
 1. 准备配置环境
-本系列实验为了保证环境的一致性，提供docker镜像作为实验环境，大家可以通过这个[链接(https://github.com/rust-real-time-os/os_lab/tree/lab2#docker%E5%AE%89%E8%A3%85%E5%8F%8A%E6%8B%89%E5%8F%96%E4%BB%A3%E7%A0%81)配置docker，本次实验拉取docker的命令为`docker push l543306408/bupt-bos:v1.0`。
+本系列实验为了保证环境的一致性，提供docker镜像作为实验环境，大家应该在之前的lab里面已经把docker配置好了，如果还没有的话，可以通过这个[链接](https://github.com/rust-real-time-os/os_lab/tree/lab2#docker%E5%AE%89%E8%A3%85%E5%8F%8A%E6%8B%89%E5%8F%96%E4%BB%A3%E7%A0%81)配置docker。easy_lab3沿用easy_lab1/2的docker镜像。
 2. 如何提交作业
-本次实验的代码答案和文档需要提交到评测平台，具体说明参照这个[链接](https://github.com/rust-real-time-os/os_lab/tree/lab1#%E6%8F%90%E4%BA%A4)。账号和密码都是大家的学号，请大家拿到账号后及时修改密码。
+本次实验的代码答案和文档需要提交到评测平台，代码提交的方式为patch，文档提交的格式为pdf，和lab1的方法一致，具体说明参照这个[链接](https://github.com/rust-real-time-os/os_lab/tree/lab1#%E6%8F%90%E4%BA%A4)。
 
 ### lab的评分规则和due
 
 评分规则：patch 50分；文档50分；
-due: TODO: 待定
+due: 2023/12/13 23:59:59
 
 ## lab基础知识讲解
 
