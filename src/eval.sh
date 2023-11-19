@@ -15,7 +15,7 @@ fi
 ./main
 
 g++ -mavx main.cpp matrix.cpp multiply.cpp -std=c++1z -pthread -mfma -o \
-    main -D N=2048 -D M=2048 -D P=2048
+    main -D N=1024 -D M=1024 -D P=1024
 
 # 检查编译是否成功
 if [ $? -eq 0 ]; then

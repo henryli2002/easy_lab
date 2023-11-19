@@ -1,5 +1,5 @@
 #include "multiply.h"
-
+#include <emmintrin.h>
 #include <thread>
 #include <vector>
  // SSE intrinsics
@@ -8,33 +8,35 @@
 // TODO: you should implement your code in this file, we will only call `matrix_multiplication` to 
 // test your implementation
 
-// // 简单三层循环
-// void matrix_multiplication(double matrix1[N][M], 
-//                             double matrix2[M][P], 
-//                             double result_matrix[N][P])
-// {
-//     for(int row = 0; row < N; ++row)
-//         for(int col = 0; col < P; ++col) {
-//             double a = 0;
-//             for(int mid = 0; mid < M; ++mid) {
-//                 a += matrix1[row][mid] * matrix2[mid][col];
-//             }
-//             result_matrix[row][col] = a;
-//         }
-// }
+/* 简单三层循环
+void matrix_multiplication(double matrix1[N][M], 
+                            double matrix2[M][P], 
+                            double result_matrix[N][P])
+{
+    for(int row = 0; row < N; ++row)
+        for(int col = 0; col < P; ++col) {
+            double a = 0;
+            for(int mid = 0; mid < M; ++mid) {
+                a += matrix1[row][mid] * matrix2[mid][col];
+            }
+            result_matrix[row][col] = a;
+        }
+}
+*/
 
-// //交换计算顺序
-// void matrix_multiplication(double matrix1[N][M], 
-//                             double matrix2[M][P], 
-//                             double result_matrix[N][P])
-// {
-//     for(int row = 0; row < N; ++row)
-//         for(int mid = 0; mid < M; ++mid) {
-//             for(int col = 0; col < P; ++col) {
-//                 result_matrix[row][col] += matrix1[row][mid] * matrix2[mid][col];
-//             } 
-//         }
-// }
+/*交换计算顺序
+void matrix_multiplication(double matrix1[N][M], 
+                            double matrix2[M][P], 
+                            double result_matrix[N][P])
+{
+    for(int row = 0; row < N; ++row)
+        for(int mid = 0; mid < M; ++mid) {
+            for(int col = 0; col < P; ++col) {
+                result_matrix[row][col] += matrix1[row][mid] * matrix2[mid][col];
+            } 
+        }
+}
+*/
 
 /* 矩阵转置
 double transposed[P][M];
@@ -56,9 +58,8 @@ void matrix_multiplication(double matrix1[N][M], double matrix2[M][P], double re
 }
 */
 
-/* 多线程无优化
-// 多线程
-const int num_threads = 24;  // 线程数量
+/* // 多线程无优化
+const int num_threads = 20;  // 线程数量
 double transposed[P][M];
 
 // 函数用于计算部分矩阵乘法
@@ -84,16 +85,13 @@ void multiply_partial_sse(int start_row,
 
     for (int row = start_row; row < end_row; ++row) {
         for (int col = 0; col < P; ++col) {
-            __m128d sum = _mm_setzero_pd();  // Initialize sum to zero
-
-            // We'll unroll the loop by a factor of 2 to process two doubles at a time
+            __m128d sum = _mm_setzero_pd();  
             for (int mid = 0; mid < M; mid += 2) {
                 __m128d vec1 = _mm_loadu_pd(&matrix1[row][mid]);
                 __m128d vec2 = _mm_loadu_pd(&transposed[col][mid]);
                 sum = _mm_add_pd(sum, _mm_mul_pd(vec1, vec2));
             }
 
-            // Handle case where M is not divisible by 2
             double partial_sum[2];
             _mm_storeu_pd(partial_sum, sum);
             double final_sum = partial_sum[0] + partial_sum[1];
@@ -127,7 +125,7 @@ void matrix_multiplication(double matrix1[N][M],
     for (int i = 0; i < num_threads; ++i) {
         int start_row = i * rows_per_thread;
         int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
-        threads.push_back(std::thread(multiply_partial,  \
+        threads.push_back(std::thread(multiply_partial_sse,  \
         start_row, end_row, matrix1, result_matrix));
     }    
     
@@ -137,25 +135,17 @@ void matrix_multiplication(double matrix1[N][M],
         threads[i].join();
     }
 }
-*/
 
 
 
+ */
 
+/* // sse
+const int num_threads = 20;  // 线程数量
 
-
-
-
-// #include <emmintrin.h>  
-// #include <vector>
-// #include <thread>
-
-// const int num_threads = 256;  // 线程数量
-// const int BLOCK_SIZE = 32;
-
-// double* transposed;
-// double* matrix1_1;
-// double* result_matrix_1;
+double* transposed;
+double* matrix1_1;
+double* result_matrix_1;
 // // 使用SSE进行计算的函数
 // void multiply_partial_sse(int start_row, int end_row) {
 //     for (int row = start_row; row < end_row; ++row) {
@@ -225,81 +215,84 @@ void matrix_multiplication(double matrix1[N][M],
 //     }
 // }
 
+void multiply_partial(int start_row, int end_row) {
+    for (int row = start_row; row < end_row; ++row) {
+        for (int col = 0; col < P; ++col) {
+            double a = 0;
+            for (int mid = 0; mid < M; ++mid) {
+                a += matrix1_1[row * M + mid] * transposed[col * M + mid];
+            }
+            result_matrix_1[row * P + col] = a;
+        }
+    }
+}
 
-// void multiply_partial_sse_withblock(int start_row, int end_row) {
-//     for (int i0 = start_row; i0 < end_row; i0 += BLOCK_SIZE) {
-//         int i_max = std::min(end_row, i0 + BLOCK_SIZE);
-//         for (int j0 = 0; j0 < P; j0 += BLOCK_SIZE) {
-//             int j_max = std::min(P, j0 + BLOCK_SIZE);
-//             for (int k0 = 0; k0 < M; k0 += BLOCK_SIZE) {
-//                 int k_max = std::min(M, k0 + BLOCK_SIZE);
-//                 for (int i = i0; i < i_max; ++i) {
-//                     for (int j = j0; j < j_max; ++j) {
-//                         __m128d sum = _mm_setzero_pd();
-//                         for (int k = k0; k < k_max; k += 2) {
-//                             __m128d vec1 = _mm_load_pd(&matrix1_1[i * M + k]);
-//                             __m128d vec2 = _mm_load_pd(&transposed[j * M + k]);
-//                             sum = _mm_add_pd(sum, _mm_mul_pd(vec1, vec2));
-//                         }
-//                         double partial_sum[2];
-//                         _mm_storeu_pd(partial_sum, sum);
-//                         result_matrix_1[i * P + j] += partial_sum[0] + partial_sum[1];
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+void multiply_partial_sse(int start_row, int end_row) {
+    for (int row = start_row; row < end_row; ++row) {
+        for (int col = 0; col < P; ++col) {
+            __m128d sum0 = _mm_setzero_pd();
+            for (int mid = 0; mid < M; mid += 2) { 
+                __m128d vec1_0 = _mm_load_pd(&matrix1_1[row * M + mid]);
+                __m128d vec2_0 = _mm_load_pd(&transposed[col * M + mid]);
+                sum0 = _mm_add_pd(sum0, _mm_mul_pd(vec1_0, vec2_0));
+            }
 
+            __attribute__ ((aligned(16))) double partial_sum[2];
+            _mm_store_pd(partial_sum, sum0);
+            result_matrix_1[row * P + col] = partial_sum[0] + partial_sum[1];
+        }
+    }
+}
 
-// void matrix_multiplication(double matrix1[N][M], 
-//                             double matrix2[M][P], 
-//                             double result_matrix[N][P]) {
-//     transposed = (double*)_mm_malloc(sizeof(double) * M * P, 16);
-//     matrix1_1 = (double*)_mm_malloc(N * M * sizeof(double), 16);
-//     result_matrix_1 = (double*)_mm_malloc(N * P * sizeof(double), 16);
+void matrix_multiplication(double matrix1[N][M], 
+                            double matrix2[M][P], 
+                            double result_matrix[N][P]) {
+    transposed = (double*)_mm_malloc(sizeof(double) * M * P, 16);
+    matrix1_1 = (double*)_mm_malloc(N * M * sizeof(double), 16);
+    result_matrix_1 = (double*)_mm_malloc(N * P * sizeof(double), 16);
 
     
-//     for (int i = 0; i < N; ++i) {
-//         for (int j = 0; j < M; ++j) {
-//             matrix1_1[i * M + j] = matrix1[i][j];
-//         }
-//     }
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < M; ++j) {
+            matrix1_1[i * M + j] = matrix1[i][j];
+        }
+    }
 
-//     for (int i = 0; i < M; ++i) {
-//         for (int j = 0; j < P; ++j) {
-//             transposed[j * M + i] = matrix2[i][j];
-//         }
-//     }
+    for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < P; ++j) {
+            transposed[j * M + i] = matrix2[i][j];
+        }
+    }
     
-//     std::vector<std::thread> threads;
-//     int rows_per_thread = N / num_threads;
-//     for (int i = 0; i < num_threads; ++i) {
-//         int start_row = i * rows_per_thread;
-//         int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
-//         threads.push_back(std::thread(multiply_partial, start_row, end_row));
-//     }   
+    std::vector<std::thread> threads;
+    int rows_per_thread = N / num_threads;
+    for (int i = 0; i < num_threads; ++i) {
+        int start_row = i * rows_per_thread;
+        int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
+        threads.push_back(std::thread(multiply_partial_sse, start_row, end_row));
+    }   
     
      
 
-//     for (int i = 0; i < num_threads; ++i) {
-//         threads[i].join();
-//     }
+    for (int i = 0; i < num_threads; ++i) {
+        threads[i].join();
+    }
 
-//     for (int i = 0; i < N; ++i) {
-//         for (int j = 0; j < P; ++j) {
-//             result_matrix[i][j] = result_matrix_1[i * P + j];
-//         }
-//     }
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < P; ++j) {
+            result_matrix[i][j] = result_matrix_1[i * P + j];
+        }
+    }
     
-//     _mm_free(transposed);
-//     _mm_free(matrix1_1);
-//     _mm_free(result_matrix_1);
-// }
+    _mm_free(transposed);
+    _mm_free(matrix1_1);
+    _mm_free(result_matrix_1);
+}
+
+*/
+
 
 #include <immintrin.h> 
-
-  // 线程数量
 
 double* transposed;
 double* matrix1_1;
@@ -363,7 +356,7 @@ void matrix_multiplication(double matrix1[N][M],
         }
     }
     
-    int num_threads = N / 2;
+    int num_threads = N / 4;
 
     std::vector<std::thread> threads;
 
@@ -373,6 +366,8 @@ void matrix_multiplication(double matrix1[N][M],
             int start_row = i * rows_per_thread;
             int end_row = (i == num_threads - 1) ? N : (i + 1) * rows_per_thread;
             threads.push_back(std::thread(multiply_partial_avx, start_row, end_row));
+
+            
         }
     }
     else {
